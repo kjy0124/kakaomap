@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Current Location</title>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4a0d336eccba32405ebe723bac3d789f"></script>
+</head>
+<body>
+<h1>a map of my surroundings</h1>
+<button onclick="getLocation()">Get Location</button>
+<div id="map" style="width:600px;height:600px;"></div>
+
+<script>
+    const container = document.getElementById('map');
+    const options = {
+        center: new kakao.maps.LatLng(37.5665, 126.9780), // 초기 위치 (서울 시청)
+        level: 3 // 지도 레벨 설정
+    };
+
+    // Kakao 지도 생성
+    const map = new kakao.maps.Map(container, options);
+
+    window.onload = function (){
+        getLocation();
+    };
+
+    let watchId = null;
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition(showMap, showError);
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+
+    function showMap(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        const centerPosition = new kakao.maps.LatLng(latitude, longitude);
+        map.setCenter(centerPosition); // 현재 위치로 지도 중심 변경
+
+        // 마커를 생성하고 지도 위에 표시
+        const markerPosition = new kakao.maps.LatLng(latitude, longitude);
+        const marker = new kakao.maps.Marker({
+            position: markerPosition
+        });
+        marker.setMap(map);
+
+        // 현재 위치의 주소 정보 받아오기
+        fetch(`/location/current-location?latitude=${latitude}&longitude=${longitude}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                console.log(data); // 받아온 데이터 확인 (주변 정보)
+                // 받아온 데이터를 이용하여 원하는 처리 수행
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+    }
+
+    function showError(error) {
+        let errorMessage = "Unknown error occurred.";
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "User denied the request for Geolocation.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "The request to get user location timed out.";
+                break;
+        }
+        alert(errorMessage);
+    }
+</script>
+</body>
+</html>
